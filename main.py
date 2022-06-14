@@ -42,6 +42,8 @@ def build_model():
 
                          {'name': 'conv8_2', 'num_filters': 401, 'padding': 0,
                           'kernel_size': 8, 'conv_strides': 2},  # output: VGG 401 classes
+
+
                          ]
 
     for x in filter_parameters:
@@ -77,7 +79,7 @@ def build_model():
 def preprocess(audio):
     audio *= 256.0  # SoundNet requires an input range between -256 and 256
     # reshaping the audio data, in this way it fits into the graph (batch_size, num_samples, num_filter_channels)
-    audio = np.reshape(audio, (1, -1, 1))
+    audio = np.reshape(audio, (1, -1))
     return audio
 
 
@@ -91,7 +93,7 @@ from keras.utils import plot_model
 
 #Review of the model and architecture parameters
 model = build_model()
-model.summary()
+# model.summary()
 
 
 f = open('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/categories/categories_places2.txt', 'r')
@@ -120,9 +122,7 @@ def predictions_to_objects(predictionsc):
 audiot,sr = librosa.load('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/railroad_audio.wav',
                          dtype='float32', sr=22050, mono=True) #load audio
 
-#library to listen sound
-import IPython.display as ipd
-ipd.Audio(audiot, rate=sr) # load
+
 
 
 def predict_scene_from_audio_file(audio_file):
@@ -209,18 +209,15 @@ print ('LETS MOVE TO THE CUSTOM PART')
 import pandas as pd
 test = pd.read_csv('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/ESC-50-master/meta/esc50.csv',sep=',')
 #test.head()
-
-esc10 = test[ test['esc10'] == True]
+#
+# esc10 = test[test['esc10'] == False]   #### dokimazw gia 40 classes
 # print(esc10[:5]) #first 5 elements
+esc10 = test
 
 data = [] #load the audiofiles
 data2 = []
 list_target = esc10['target'] #list of targets in dataset ESC10
 list_category = esc10['category'] #list of categories (scenes) in dataset ESC10
-
-
-print('list target is', list_target)
-print('list_category is', list_category)
 
 
 
@@ -229,16 +226,21 @@ print('list_category is', list_category)
 for file_name in list(esc10['filename']):
     audio = load_audio('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/ESC-50-master/audio/'+ file_name)
     data.append(audio)
+    print(len(data))
 
-# print("Total size loaded data: ",len(data),len(list_target),len(list_category)) #load correctly
-# print("Example: ",list_target[0],list_category[0]) #load correctly
 
+
+for j in range(0,len(data)):
+    print('the shape of this element is',data[j].shape)
+
+
+print(type(data))
 datos = np.asarray([data[155]]).reshape(1,-1,1) # failure due to the size
-#print("Data shape: ",datos.shape)
-
-datos = np.asarray([data[5],data[5],data[5]]).reshape(1,-1,1)
-#print("Input shape: ", datos.shape)
-
+print("Data shape: ",datos.shape)
+#
+# datos = np.asarray([data[5],data[5],data[5]]).reshape(1,-1,1)
+# print("Input shape: ", datos.shape)
+#
 # p = model.predict(datos)
 # print('p is', p.shape)
 
@@ -259,56 +261,28 @@ def getActivations(data, number_layer):
                                   [model.layers[number_layer].output])
     # just for information
     ex = get_layer_output([data[155]])[0]
-   # print('Dimension layer {}: {}'.format(number_layer, ex.shape))
+    print('Dimension layer {}: {}'.format(number_layer, ex.shape))
 
     for audio in data:
         # get Hidden Representation
         layer_output = get_layer_output([audio])[0]  # multidimensional vector
+        print(layer_output.shape,'layer output')
         tensor = layer_output.reshape(1, -1)  # change vector shape to 1 (tensor)
+        print(tensor.shape,'tensor')
         intermediate_tensor.append(tensor[0])  # list of tensor activations for each object in Esc10
+
     return intermediate_tensor
 
 
-from sklearn.manifold import TSNE
-from time import time  # control time
-
-
-# produce the visualisation of hidden representation for a hidden layer given an intermediate tensor and a list of targets
-def toTSNE(intermediate_tensor, target, number_layer, ax):
-    t0 = time()
-    tsne = TSNE(n_components=2, random_state=0)  # define dimension of the graph
-    # get activation from data and obtain tsne representation
-    intermediates_tsne = tsne.fit_transform(intermediate_tensor)
-
-    ax.scatter(x=intermediates_tsne[:, 0], y=intermediates_tsne[:, 1], c=target, alpha=0.7, cmap=plt.cm.Spectral)
-    ax.title("TSNE layer %i (time %.2fs)" % (number_layer, time() - t0))
-    ax.colorbar()
 
 activations22 = getActivations(data,22) #get activation tensor for the 22nd layer in the model (pool5)
-
-# print("Total tensors: ", len(activations22))
-# print("Size tensor: ", len(activations22[0]))
-
-#Visualisation output hidden layer pool 5 (22nd layer in model)
-# fig = plt.figure(figsize=(5,5))
-# toTSNE(activations22,list_target,22,plt) # use a function defined before to make the graph
-
-
+print(activations22)
 
 layers = [0,4,9,15,22,28] # List of important hidden layers
 
-# fig = plt.figure(figsize=(15,12))
-# # Loop to make the graph from each desired layer
-# for c,i in enumerate(layers):
-#     ax = fig.add_subplot(2,3,c+1)
-#     activations = getActivations(data,i)
-#     toTSNE(activations,list_target,i,plt)
-# plt.subplots_adjust(bottom=0.15, wspace=0.05)
-# plt.show()
-
 #obtain vector layer 22 INPUT
 x = np.asarray(getActivations(data,22)) #Transfer learning
-#print('Dataset input shape', x.shape)
+print('Dataset input shape', x.shape)
 y = np.asarray(list_target)
 #print('Target list shape',y.shape)
 
@@ -326,16 +300,9 @@ for position,target in enumerate(y):
         toCategory[i] = names[position] #dictionary categories
         i += 1
 #
-print("Dictionary of classes: ",toClass)
-print("Values representation: ",toCategory)
-print(names)
-
-
-
-for i in range(10):
-    print(toCategory[i])
-
-
+# print("Dictionary of classes: ",toClass)
+# print("Values representation: ",toCategory)
+# print(names)
 
 
 #change vector of classes
@@ -343,40 +310,44 @@ Y = []
 for i in y:
     Y.append(toClass[i])
 Y = np.asarray(Y)
-#print("Elem. 100: Class before:", y[100], " Class after:", Y[100])
+
 
 
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
-num_classes = 10
+num_classes = 50
+
+
 
 #Split data into train and test
 x_train, x_test, y_train, y_test = train_test_split(x, Y, test_size=0.2, random_state = 25)
 z_train = to_categorical(y_train, num_classes) # convert class vectors to binary class matrices
 z_test = to_categorical(y_test, num_classes)
-#print("Binary representation of the first tag: ",z_train[0])
-
 
 
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Flatten
 
 
-#for a single layer perceptron is necessary just a softmax layer
+
 classifier = Sequential()
 classifier.add(Dense(num_classes, activation='softmax',input_shape=(3328,)))
 classifier.summary()
 
-from keras.optimizers import RMSprop,Adam
-#Define optimization function and compile the model
+from keras.optimizers import Adam
 classifier.compile(loss='categorical_crossentropy', optimizer=Adam(),metrics=['accuracy'])
 
 batch_size =64
-epochs = 10
+epochs = 100
 #fit classifier
 hist_classifier = classifier.fit(x_train,z_train, validation_data=(x_test,z_test), epochs=epochs,batch_size=batch_size)
 
-# list all data in history
+
+
+classifier.save("testmodel_50.h5")
+
+
+
 def evaluate_model(model,history,title):
     print(history.history.keys())
     plt.figure()
@@ -394,20 +365,17 @@ def evaluate_model(model,history,title):
 
 evaluate_model(classifier,hist_classifier,'softmax')
 
-
 x_pred = classifier.predict(x_test)
 x_pred_classes = x_pred.argmax(axis=-1)
 
 
 
 
-# print(x_pred.shape)
-# print(x_classes.shape)
 
-
-
-for i in range(len(x_test)):
-    #print(x_pred[i], toCategory[x_classes[i]])
-    print(x_test[i], toCategory[x_pred_classes[i]])
-
-
+# print(x_test)
+#
+# for i in range(len(x_test)):
+#     #print(x_pred[i], toCategory[x_classes[i]])
+#     print(x_test[i], toCategory[x_pred_classes[i]])
+#
+# ######## for a custom folder
