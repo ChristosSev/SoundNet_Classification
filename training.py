@@ -186,7 +186,7 @@ test = pd.read_csv(testt,sep=',')
 if dataset_size == 10:
     esc10 = test[test['esc10'] == True]   #### 10 classes
 elif dataset_size == 40:
-    esc10 = test[test['esc10'] == False].#### 40 classes
+    esc10 = test[test['esc10'] == False]#### 40 classes
 else:
     esc10 = test  ###full 50 classes
 
