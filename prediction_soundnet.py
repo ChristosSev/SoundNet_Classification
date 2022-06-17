@@ -4,6 +4,7 @@ import numpy as np
 import librosa
 from glob import glob
 import os
+import argparse
 import pandas as pd
 
 
@@ -113,6 +114,16 @@ def predictions_to_objects(prediction):
             objects.append(categories[np.argmax(prediction[0, p, :])])
     return objects
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('Load_folder', metavar='Load_folder', type=str,
+                    help='specify the test folder')
+args= parser.parse_args()
+
+base_path = args.Load_folder
+
+
+
 if __name__ == '__main__':
     output_path = '/Users/christos/PycharmProjects/pythonProject/soundnet_prediction_outputs'+os.sep
     if not os.path.exists(output_path):
@@ -120,7 +131,7 @@ if __name__ == '__main__':
 
 
     # base_path = '../ESC-50-master/audio/'
-    base_path = '/Users/christos/PycharmProjects/pythonProject/scenesNoisy03-Jun-2022/'
+    # base_path = '/Users/christos/PycharmProjects/pythonProject/scenesNoisy03-Jun-2022/'
     test_files = glob(base_path+'*wav')+glob(base_path+'*mp3')
     for f in test_files:
         print(f)
