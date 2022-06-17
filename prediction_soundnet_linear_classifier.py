@@ -5,7 +5,7 @@ from keras.models import load_model
 import numpy as np
 import librosa
 import pandas as pd
-
+import argparse
 
 test = pd.read_csv('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/ESC-50-master/meta/esc50.csv',sep=',')
 
@@ -15,15 +15,12 @@ categories = []
 for i in range(len(categories_full[:])):
     if categories_full[i] not in categories:
         categories.append(categories_full[i])
-
-# #[11 26 46 29 12  4 49 21 27 28]
-# for j in range(len(pred_list)):
-#     results =
+fn = ""
 
 
 
 def load_pretrained():
-    fn = "testmodel_50.h5"
+    #fn = "aek"
     model = load_model(fn)
     #model.summary()
     return model
@@ -46,28 +43,17 @@ def load_audio(audio_file):
 
 
 
-# def predictions_to_scenes(prediction):
-#     scenes = []
-#     for p in range(len(prediction)):
-#             scenes.append(categories[np.argmax(prediction[p, :])])
-#             print(scenes)
-#
-#     return scenes
+
 
 
 
 def define_all_predictions(prediction):
-    final_list = []
     ten_predicted_scenes = []
     sorted_categories = np.argsort(prediction[0])[:-11:-1]
-    #print(sorted_categories)
     for i in range(len(sorted_categories)):
         ten_predicted_scenes.append((categories[sorted_categories[i]]))
 
     return ten_predicted_scenes
-
-
-
 
 def predict_scene_from_audio_file(audio_file):
     model = load_pretrained()
@@ -75,6 +61,19 @@ def predict_scene_from_audio_file(audio_file):
     prediction = model.predict(audio)
     return prediction
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('Load_folder', metavar='Load_folder', type=str,
+                    help='specify the folder')
+parser.add_argument('Load_file', metavar='Load_file', type=str,
+                    help='specify the saved model to load')
+
+
+args= parser.parse_args()
+
+base_path = args.Load_folder
+fn = args.Load_file
+print("the model you chose is", fn)
 
 
 if __name__ == '__main__':
@@ -84,7 +83,7 @@ if __name__ == '__main__':
 
 
     # base_path = '../ESC-50-master/audio/'
-    base_path = '/Users/christos/PycharmProjects/pythonProject/scenesNoisy03-Jun-2022/'
+   # base_path = '/Users/christos/PycharmProjects/pythonProject/scenesNoisy03-Jun-2022/'
     test_files = glob(base_path+'*wav')+glob(base_path+'*mp3')
     for f in test_files:
         #print(f)
