@@ -1,9 +1,20 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+import argparse
+import csv
+import keras
+import pandas as pd
+import io
 from keras.layers import BatchNormalization, Activation, Conv1D, MaxPooling1D, ZeroPadding1D, InputLayer
-from keras.models import Sequential
 import numpy as np
-import matplotlib.pyplot as plt
 import librosa
-import sklearn
+from keras import backend as K
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from keras.utils import to_categorical
+from keras.models import Sequential
+from keras.layers import Dense, Flatten
+
 
 def build_model():
     """
@@ -76,6 +87,9 @@ def build_model():
 
     return model
 
+
+
+
 def preprocess(audio):
     audio *= 256.0  # SoundNet requires an input range between -256 and 256
     # reshaping the audio data, in this way it fits into the graph (batch_size, num_samples, num_filter_channels)
@@ -89,11 +103,9 @@ def load_audio(audio_file):
     audio = preprocess(audio) # pre-process using SoundNet parameters
     return audio
 
-from keras.utils import plot_model
 
-#Review of the model and architecture parameters
-model = build_model()
-# model.summary()
+
+
 
 
 f = open('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/categories/categories_places2.txt', 'r')
@@ -118,101 +130,69 @@ def predictions_to_objects(predictionsc):
     return objects
 
 
-# let's load an audio file
-audiot,sr = librosa.load('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/railroad_audio.wav',
-                         dtype='float32', sr=22050, mono=True) #load audio
+model = build_model()
+# model.summary()
+
+# Parsing the files
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("csv_file_path")
+parser.add_argument("--encoding", default="utf_8")
+
+parser.add_argument('Transfer_learning_layer', metavar='Transfer_learning_layer', type=int,
+                    help='specify the layer to extract features for transfer learning')
+
+parser.add_argument('Epochs', metavar='Epochs', type=int,
+                    help='specify the number of epochs')
+
+parser.add_argument('Batch_size', metavar='Batch_size', type=int,
+                    help='specify the batch size')
+
+parser.add_argument('Dataset_size', metavar='Dataset_size', type=int,
+                    help='specify the Dataset_size 10,40,50')
+
+parser.add_argument('Learning_Rate_value', metavar='Learning_Rate_value', type=float,
+                    help='specify the Learning_Rate_value')
+
+parser.add_argument('Save_name', metavar='Save_name', type=str,
+                    help='specify the name of the .h5 file')
+
+
+args= parser.parse_args()
+
+csv_reader = csv.reader(
+    io.open(args.csv_file_path, "r", encoding=args.encoding),
+    delimiter=",",
+    quotechar='"'
+)
+
+
+
+testt = args.csv_file_path
+Input_epochs = args.Epochs
+Input_batchsize = args.Batch_size
+Input_feature_layer = args.Transfer_learning_layer
+dataset_size = args.Dataset_size
+lr = args.Learning_Rate_value
+save_name = args.Save_name
 
 
 
 
-def predict_scene_from_audio_file(audio_file):
-    model = build_model()
-    audio = load_audio(audio_file)
-    return model.predict(audio)
-
-# Use previous function to predict and show scenes in the audio
-prediction = predict_scene_from_audio_file('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/railroad_audio.wav')
-#print("output model shape", prediction.shape)
+test = pd.read_csv(testt,sep=',')
 
 
-def findMax(vector): #find 3 classes max
-    maximus = []
-    for i in range(3):
-        index = np.argmax(vector)
-        f = [index, max(vector)]
-        vector[index] = 0
-        maximus.append(f)
-    return maximus
-
-def putText(datos,x):
-    f = findMax(datos)
-    text = "Prediction " + str(x) + ": "
-    for i in f:
-        text = text +" - "+ categories[i[0]]
-    print(text)
-
-def plot_scenes(pred,title):
-    plt.figure(figsize=(16,8))
-    for i in range(pred.shape[1]):# number of prediction vectors
-        datos = (pred[0,i,:] > 0)* pred[0,i,:] #find classes
-        label='Window no: '+ str(i)
-        plt.bar(np.arange(0,pred.shape[2]),datos,label = label) # it draws the histogram for each window
-        m = np.argmax(datos)
-        plt.text(m,max(datos)-(0.01),'Scene out: '+ str(i) +categories[m])
-        putText(datos,i)
-
-    plt.legend()
-    plt.title(title)
-    plt.xlabel('Scenes')
-    plt.show()
-
-# Use previous function to show histogram in this first audio
-#plot_scenes(prediction,'Output railroad')
-#
-#
-#
-# def plot_objects(pred,title):
-#     plt.figure(figsize=(16,8))
-#     for i in range(pred.shape[1]):# number of prediction vectors
-#         datos = (pred[0,i,:] > 0)* pred[0,i,:] #find classes
-#         label='Window no: '+ str(i)
-#         plt.bar(np.arange(0,pred.shape[2]),datos,label = label) # it draws the histogram for each window
-#         m = np.argmax(datos)
-#         plt.text(m,max(datos)-(0.01),'Scene out: '+ str(i) +image_objectts[m])
-#         putText(datos,i)
-#
-#     plt.legend()
-#     plt.title(title)
-#     plt.xlabel('Objects')
-#     plt.show()
-#
-#
-# plot_objects(prediction,'Output railroad')
+if dataset_size == 10:
+    esc10 = test[test['esc10'] == True]   #### dokimazw gia 40 classes
+elif dataset_size == 40:
+    esc10 = test[test['esc10'] == False]
+else:
+    esc10 = test  ###full 50 classes
 
 
 
 
-#print(prediction)
-
-# Repeat the process to obtain a new prediction
-#prediction2 = predict_scene_from_audio_file('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/school.wav')
-#print("output model shape", prediction2.shape) #output model
-#
-# plot_objects(prediction2,'Output school yard')
-
-
-
-print ('LETS MOVE TO THE CUSTOM PART')
-
-
-
-import pandas as pd
-test = pd.read_csv('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/ESC-50-master/meta/esc50.csv',sep=',')
-#test.head()
-#
-# esc10 = test[test['esc10'] == False]   #### dokimazw gia 40 classes
-# print(esc10[:5]) #first 5 elements
-esc10 = test
 
 data = [] #load the audiofiles
 data2 = []
@@ -229,31 +209,6 @@ for file_name in list(esc10['filename']):
     print(len(data))
 
 
-
-for j in range(0,len(data)):
-    print('the shape of this element is',data[j].shape)
-
-
-print(type(data))
-datos = np.asarray([data[155]]).reshape(1,-1,1) # failure due to the size
-print("Data shape: ",datos.shape)
-#
-# datos = np.asarray([data[5],data[5],data[5]]).reshape(1,-1,1)
-# print("Input shape: ", datos.shape)
-#
-# p = model.predict(datos)
-# print('p is', p.shape)
-
-
-
-#- > Three times data: enough samples for the model
-#print("Output shape: ",p.shape)
-#plot_scenes(p,'output esc10-helicopter')
-
-from keras import backend as K
-
-
-# return the list of activations as tensors for an specific layer in the model
 def getActivations(data, number_layer):
     intermediate_tensor = []
     # get Hidden Representation function
@@ -261,34 +216,34 @@ def getActivations(data, number_layer):
                                   [model.layers[number_layer].output])
     # just for information
     ex = get_layer_output([data[155]])[0]
-    print('Dimension layer {}: {}'.format(number_layer, ex.shape))
+    #print('Dimension layer {}: {}'.format(number_layer, ex.shape))
 
     for audio in data:
         # get Hidden Representation
         layer_output = get_layer_output([audio])[0]  # multidimensional vector
-        print(layer_output.shape,'layer output')
+        #print(layer_output.shape,'layer output')
         tensor = layer_output.reshape(1, -1)  # change vector shape to 1 (tensor)
-        print(tensor.shape,'tensor')
+        #print(tensor.shape,'tensor')
         intermediate_tensor.append(tensor[0])  # list of tensor activations for each object in Esc10
 
     return intermediate_tensor
 
 
 
-activations22 = getActivations(data,22) #get activation tensor for the 22nd layer in the model (pool5)
-print(activations22)
+
+
+
+#activations22 = getActivations(data,int(Input_feature_layer)) #get activation tensor for the 22nd layer in the model (pool5)
+# print(activations22)
 
 layers = [0,4,9,15,22,28] # List of important hidden layers
 
 #obtain vector layer 22 INPUT
 x = np.asarray(getActivations(data,22)) #Transfer learning
-print('Dataset input shape', x.shape)
+#print('Dataset input shape', x.shape)
 y = np.asarray(list_target)
-#print('Target list shape',y.shape)
 
 
-
-#obtain original values
 toClass = {} #dictionary to translate values of classes
 toCategory = {} #dictionary with new values of categories
 names = np.asarray(list_category) #array with names of categories
@@ -313,9 +268,9 @@ Y = np.asarray(Y)
 
 
 
-from sklearn.model_selection import train_test_split
-from keras.utils import to_categorical
-num_classes = 50
+
+num_classes = dataset_size
+print(num_classes)
 
 
 
@@ -325,8 +280,7 @@ z_train = to_categorical(y_train, num_classes) # convert class vectors to binary
 z_test = to_categorical(y_test, num_classes)
 
 
-from keras.models import Sequential
-from keras.layers import Dense, Flatten
+
 
 
 
@@ -335,47 +289,12 @@ classifier.add(Dense(num_classes, activation='softmax',input_shape=(3328,)))
 classifier.summary()
 
 from keras.optimizers import Adam
-classifier.compile(loss='categorical_crossentropy', optimizer=Adam(),metrics=['accuracy'])
+classifier.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate=lr),metrics=['accuracy'])
 
-batch_size =64
-epochs = 100
-#fit classifier
+batch_size =Input_batchsize  ###64
+epochs = Input_epochs   #100
+
+
 hist_classifier = classifier.fit(x_train,z_train, validation_data=(x_test,z_test), epochs=epochs,batch_size=batch_size)
 
-
-
-classifier.save("testmodel_50.h5")
-
-
-
-def evaluate_model(model,history,title):
-    print(history.history.keys())
-    plt.figure()
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('model accuracy '+ title)
-    plt.ylabel('accuracy')
-    plt.xlabel('epochs')
-    plt.legend(['train','val'], loc='upper left')
-   # plt.show()
-
-    score = model.evaluate(x_test, z_test, verbose=0)
-    print('Test loss:', score[0])
-    print('Test accuracy:', score[1])
-
-evaluate_model(classifier,hist_classifier,'softmax')
-
-x_pred = classifier.predict(x_test)
-x_pred_classes = x_pred.argmax(axis=-1)
-
-
-
-
-
-# print(x_test)
-#
-# for i in range(len(x_test)):
-#     #print(x_pred[i], toCategory[x_classes[i]])
-#     print(x_test[i], toCategory[x_pred_classes[i]])
-#
-# ######## for a custom folder
+classifier.save(save_name,save_format='h5')
