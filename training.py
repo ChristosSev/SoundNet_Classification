@@ -1,19 +1,33 @@
-from __future__ import print_function
-from __future__ import unicode_literals
 import argparse
 import csv
 import keras
-import pandas as pd
 import io
 from keras.layers import BatchNormalization, Activation, Conv1D, MaxPooling1D, ZeroPadding1D, InputLayer
 import numpy as np
 import librosa
 from keras import backend as K
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Flatten
+from sklearn.model_selection import train_test_split
+from keras.utils import to_categorical
+import pandas as pd
+
+
+
+def preprocess(audio):
+    audio *= 256.0  # SoundNet needs the range to be between -256 and 256
+    # reshaping the audio data so it fits into the graph (batch_size, num_samples, num_filter_channels)
+    audio = np.reshape(audio, (1, -1, 1))
+    return audio
+
+def load_audio(audio_file):
+    sample_rate = 22050  # SoundNet works on mono audio files with a sample rate of 22050.
+    audio, sr = librosa.load(audio_file, dtype='float32', sr=22050, mono=True)
+    audio = preprocess(audio)
+    return audio
+
+
 
 
 def build_model():
@@ -88,26 +102,6 @@ def build_model():
     return model
 
 
-
-
-def preprocess(audio):
-    audio *= 256.0  # SoundNet requires an input range between -256 and 256
-    # reshaping the audio data, in this way it fits into the graph (batch_size, num_samples, num_filter_channels)
-    audio = np.reshape(audio, (1, -1))
-    return audio
-
-
-def load_audio(audio_file):
-    sample_rate = 22050  # SoundNet works on monophonic-audio files with sample rate of 22050.
-    audio, sr = librosa.load(audio_file, dtype='float32', sr=22050, mono=True) #load audio
-    audio = preprocess(audio) # pre-process using SoundNet parameters
-    return audio
-
-
-
-
-
-
 f = open('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/soundnet_keras-master/categories/categories_places2.txt', 'r')
 categories = f.read().split('\n')
 
@@ -131,16 +125,14 @@ def predictions_to_objects(predictionsc):
 
 
 model = build_model()
-# model.summary()
 
-# Parsing the files
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("csv_file_path")
-parser.add_argument("--encoding", default="utf_8")
+# parser.add_argument("csv_file_path")
+# parser.add_argument("--encoding", default="utf_8")
 
-parser.add_argument('Transfer_learning_layer', metavar='Transfer_learning_layer', type=int,
+parser.add_argument('Transfer_learning_layer', metavar='Transfer_learning_layer', type=int,default=22,
                     help='specify the layer to extract features for transfer learning')
 
 parser.add_argument('Epochs', metavar='Epochs', type=int,
@@ -152,7 +144,7 @@ parser.add_argument('Batch_size', metavar='Batch_size', type=int,
 parser.add_argument('Dataset_size', metavar='Dataset_size', type=int,
                     help='specify the Dataset_size 10,40,50')
 
-parser.add_argument('Learning_Rate_value', metavar='Learning_Rate_value', type=float,
+parser.add_argument('Learning_Rate_value', metavar='Learning_Rate_value', type=float, default = 0.001,
                     help='specify the Learning_Rate_value')
 
 parser.add_argument('Save_name', metavar='Save_name', type=str,
@@ -161,15 +153,14 @@ parser.add_argument('Save_name', metavar='Save_name', type=str,
 
 args= parser.parse_args()
 
-csv_reader = csv.reader(
-    io.open(args.csv_file_path, "r", encoding=args.encoding),
-    delimiter=",",
-    quotechar='"'
-)
+# csv_reader = csv.reader(
+#     io.open(args.csv_file_path, "r", encoding=args.encoding),
+#     delimiter=",",
+#     quotechar='"'
+# )
 
 
-
-testt = args.csv_file_path
+# testt = args.csv_file_path
 Input_epochs = args.Epochs
 Input_batchsize = args.Batch_size
 Input_feature_layer = args.Transfer_learning_layer
@@ -180,17 +171,25 @@ save_name = args.Save_name
 
 
 
-test = pd.read_csv(testt,sep=',')
 
 
+test = pd.read_csv('/Users/christos/PycharmProjects/pythonProject/SoundNet-keras/ESC-50-master/meta/esc50.csv',sep=',')
+list_target = []
+list_category = []
+
+
+
+
+#
 if dataset_size == 10:
-    esc10 = test[test['esc10'] == True]   #### 10 classes
+    esc10 = test[test['esc10'] == True]   #### dokimazw gia 40 classes
 elif dataset_size == 40:
-    esc10 = test[test['esc10'] == False]#### 40 classes
+    esc10 = test[test['esc10'] == False]
 else:
     esc10 = test  ###full 50 classes
 
 
+# esc10 = test[test['esc10'] == True]
 
 
 
@@ -230,12 +229,6 @@ def getActivations(data, number_layer):
 
 
 
-
-
-
-#activations22 = getActivations(data,int(Input_feature_layer)) #get activation tensor for the 22nd layer in the model (pool5)
-# print(activations22)
-
 layers = [0,4,9,15,22,28] # List of important hidden layers
 
 #obtain vector layer 22 INPUT
@@ -254,10 +247,7 @@ for position,target in enumerate(y):
         toClass[target] = i #dictionary classes
         toCategory[i] = names[position] #dictionary categories
         i += 1
-#
-# print("Dictionary of classes: ",toClass)
-# print("Values representation: ",toCategory)
-# print(names)
+
 
 
 #change vector of classes
@@ -265,8 +255,6 @@ Y = []
 for i in y:
     Y.append(toClass[i])
 Y = np.asarray(Y)
-
-
 
 
 num_classes = dataset_size
@@ -278,11 +266,6 @@ print(num_classes)
 x_train, x_test, y_train, y_test = train_test_split(x, Y, test_size=0.2, random_state = 25)
 z_train = to_categorical(y_train, num_classes) # convert class vectors to binary class matrices
 z_test = to_categorical(y_test, num_classes)
-
-
-
-
-
 
 classifier = Sequential()
 classifier.add(Dense(num_classes, activation='softmax',input_shape=(3328,)))
