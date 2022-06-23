@@ -42,11 +42,6 @@ def load_audio(audio_file):
     return audio
 
 
-
-
-
-
-
 def define_all_predictions(prediction):
     ten_predicted_scenes = []
     sorted_categories = np.argsort(prediction[0])[:-11:-1]
@@ -64,7 +59,7 @@ def predict_scene_from_audio_file(audio_file):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('Load_folder', metavar='Load_folder', type=str,
-                    help='specify the folder')
+                    help='specify the folder you want to test, full path')
 parser.add_argument('Load_file', metavar='Load_file', type=str,
                     help='specify the saved model to load')
 
@@ -81,9 +76,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-
-    # base_path = '../ESC-50-master/audio/'
-   # base_path = '/Users/christos/PycharmProjects/pythonProject/scenesNoisy03-Jun-2022/'
+    print(base_path, 'base path is')
     test_files = glob(base_path+'*wav')+glob(base_path+'*mp3')
     for f in test_files:
         #print(f)
@@ -99,14 +92,7 @@ if __name__ == '__main__':
         print('----')
         output_filename = f.split(os.sep)[-1].split('.')[0]
 
-        # d={}
-        # d['filename'] = f
-        # d['predicted_vector'] = prediction
-        # d['predicted_objects'] = predicted_objects
-        # d['predicted_scenes'] = predicted_scenes
-        # # prediction_file.write('predicted_scenes:'+ str(predicted_scenes))
-        # pd.DataFrame.from_dict(d)
-        # d.to_csv(output_path + output_filename)
+      
 
         with open(output_path+output_filename+'.csv','w') as prediction_file:
             prediction_file.write('filename:'+ str(f)+ '\n')
@@ -115,4 +101,3 @@ if __name__ == '__main__':
             prediction_file.write('predicted_scenes:'+ str(predicted_ten_scenes))
 
         prediction_file.close()
-
