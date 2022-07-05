@@ -27,7 +27,7 @@ def build_model():
     Builds up the SoundNet model and loads the weights from a given model file (8-layer model is kept at models/sound8.npy).
     :return:
     """
-    model_weights = np.load('sound8.npy', allow_pickle=True,
+    model_weights = np.load('/Users/christos/PycharmProjects/pythonProject/sound8.npy', allow_pickle=True,
                             encoding='latin1').item()
     model = Sequential()
     model.add(InputLayer(batch_input_shape=(1, None, 1)))
@@ -92,9 +92,9 @@ def build_model():
 
 def predict_scene_from_audio_file(audio_file):
     model = build_model()
-    model.summary()
+    #model.summary()
     audio = load_audio(audio_file)
-    print(audio.shape,'audio shape is')
+
     return model.predict(audio)
 
 
@@ -115,50 +115,60 @@ def predictions_to_objects(prediction):
     return objects
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('Load_folder', metavar='Load_folder', type=str,
-                    help='specify the folder containing the data you want to test')
-args= parser.parse_args()
+# parser = argparse.ArgumentParser()
+# parser.add_argument('Load_folder', metavar='Load_folder', type=str,
+#                     help='specify the test folder')
+# args= parser.parse_args()
 
+# base_path = args.Load_folder
 
-base_path = args.Load_folder
+# base_path = '/Users/christos/PycharmProjects/pythonProject/extra_gn_scenes'
+# print(base_path)
 
 
 if __name__ == '__main__':
-   # base_path = '/home/csevastopoulos/SoundNet/scenes/'
-    print(base_path)
-    output_path = '/home/csevastopoulos/SoundNet/predsoundserv'+os.sep
+    output_path = '/Users/christos/PycharmProjects/pythonProject/soundnet_prediction_outputs'+os.sep
     if not os.path.exists(output_path):
         os.makedirs(output_path)
+
+
+   
+    base_path = '/Users/christos/PycharmProjects/pythonProject/extra_gn_scenes/'
     test_files = glob(base_path+'*wav')+glob(base_path+'*mp3')
-    print(len(test_files))
     for f in test_files:
         print(f)
         prediction = predict_scene_from_audio_file(f)
-        print(len(prediction[0][1]))
-        print(prediction.shape,'the shape of prediction is')
+        #print(len(prediction[0][1]))
+        #print(prediction.shape,'the shape of prediction is')
         predicted_objects = predictions_to_objects(prediction)
         predicted_scenes = predictions_to_scenes(prediction)
+
+
+
         print ('Scene is',predicted_scenes )
         print('Object is', predicted_objects)
-        print('----')
+        print('----------------------------------------------------')
         output_filename = f.split(os.sep)[-1].split('.')[0]
+        x = np.save(f,prediction
+                )
+        print(len(test_files))
 
-        # d={}
-        # d['filename'] = f
-        # d['predicted_vector'] = prediction
-        # d['predicted_objects'] = predicted_objects
-        # d['predicted_scenes'] = predicted_scenes
-        # # prediction_file.write('predicted_scenes:'+ str(predicted_scenes))
-        # pd.DataFrame.from_dict(d)
-        # d.to_csv(output_path + output_filename)
 
         with open(output_path+output_filename+'.csv','w') as prediction_file:
             prediction_file.write('filename:'+ str(f)+ '\n')
-            prediction_file.write('predicted_vector:'+ str(prediction) + '\n')
+
+            #prediction_file.write('predicted_vector:'+ str(prediction) + '\n')
             prediction_file.write('predicted_objects:' + str(predicted_objects)+'\n')
             prediction_file.write('predicted_scenes:'+ str(predicted_scenes))
 
         prediction_file.close()
 
-
+import os
+import shutil
+sourcepath=base_path
+sourcefiles = os.listdir(sourcepath)
+destinationpath = output_path
+for file in sourcefiles:
+    if file.endswith('.npy'):
+      shutil.move(os.path.join(sourcepath,file), os.path.join(destinationpath,file))
+      
